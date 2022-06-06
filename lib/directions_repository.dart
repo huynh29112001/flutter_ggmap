@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_gmaps/.env.dart';
+// import 'package:flutter_gmaps/.env.dart';
 import 'package:flutter_gmaps/directions_model.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -21,12 +21,15 @@ class DirectionsRepository {
       queryParameters: {
         'origin': '${origin.latitude},${origin.longitude}',
         'destination': '${destination.latitude},${destination.longitude}',
-        'key': googleAPIKey,
+        'key': 'AIzaSyDRTqdwJNinnipAYcH9w269mediWUWdnJ4',
       },
     );
 
     // Check if response is successful
+    print("1111111111111111111111111111111111111111111111111111111");
     if (response.statusCode == 200) {
+      print(response.data.toString());
+
       return Directions.fromMap(response.data);
     }
     return null;

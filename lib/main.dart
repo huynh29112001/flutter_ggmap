@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gmaps/directions_model.dart';
 import 'package:flutter_gmaps/directions_repository.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:location/location.dart';
 
 void main() {
   runApp(MyApp());
@@ -27,15 +28,41 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  static const _initialCameraPosition = CameraPosition(
-    target: LatLng(37.773972, -122.431297),
-    zoom: 11.5,
-  );
+  LocationData userLocation;
+  // static var _initialCameraPosition = CameraPosition(
+  //   target: LatLng(_userLocation.latitude, _userLocation.longitude),
+  //   zoom: 11.5,
+  // );
+
+  // Future<void> _getLocation() async {
+  //   Location currentLocation = Location();
+  //   var locationData = await currentLocation.getLocation();
+  //   userLocation = locationData;
+  // }
 
   GoogleMapController _googleMapController;
   Marker _origin;
   Marker _destination;
+  Marker _locationMarker;
+  Location currentLocation = Location();
   Directions _info;
+
+  void getLocation() async {
+    var location = await currentLocation.getLocation();
+    currentLocation.onLocationChanged.listen((LocationData loc) {
+      print(loc.latitude);
+      print(loc.longitude);
+      userLocation = location;
+      setState(() {
+        _locationMarker = Marker(
+          markerId: const MarkerId('Location'),
+          infoWindow: const InfoWindow(title: 'Location'),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          position: LatLng(loc.latitude ?? 0.0, loc.longitude ?? 0.0),
+        );
+      });
+    });
+  }
 
   @override
   void dispose() {
@@ -44,11 +71,25 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   @override
+  initState() {
+    super.initState();
+    setState(() {
+      getLocation();
+    });
+    // Add listeners to this class
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // _getLocation();
     return Scaffold(
       appBar: AppBar(
         centerTitle: false,
-        title: const Text('Google Maps'),
+        title: const Text(
+          'Google Maps',
+          style: TextStyle(color: Colors.black),
+        ),
+        backgroundColor: Colors.white,
         actions: [
           if (_origin != null)
             TextButton(
@@ -92,11 +133,15 @@ class _MapScreenState extends State<MapScreen> {
           GoogleMap(
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
-            initialCameraPosition: _initialCameraPosition,
+            initialCameraPosition: CameraPosition(
+              target: LatLng(20.97443, 105.84566),
+              zoom: 12,
+            ),
             onMapCreated: (controller) => _googleMapController = controller,
             markers: {
               if (_origin != null) _origin,
-              if (_destination != null) _destination
+              if (_destination != null) _destination,
+              if (_locationMarker != null) _locationMarker
             },
             polylines: {
               if (_info != null)
@@ -147,7 +192,10 @@ class _MapScreenState extends State<MapScreen> {
         onPressed: () => _googleMapController.animateCamera(
           _info != null
               ? CameraUpdate.newLatLngBounds(_info.bounds, 100.0)
-              : CameraUpdate.newCameraPosition(_initialCameraPosition),
+              : CameraUpdate.newCameraPosition(CameraPosition(
+                  target: LatLng(userLocation.latitude, userLocation.longitude),
+                  zoom: 11.5,
+                )),
         ),
         child: const Icon(Icons.center_focus_strong),
       ),
@@ -185,7 +233,7 @@ class _MapScreenState extends State<MapScreen> {
       });
 
       // Get directions
-      final directions = await DirectionsRepository()
+      var directions = await DirectionsRepository()
           .getDirections(origin: _origin.position, destination: pos);
       setState(() => _info = directions);
     }
